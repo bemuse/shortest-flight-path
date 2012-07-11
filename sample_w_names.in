@@ -1,0 +1,14 @@
+3 2000
+0 0 "Airport 1" "AP1"
+0 30 "Airport 2" "AP2"
+30 0 "Airport 3" "AP3"
+3
+"AP2" "AP3" 5000
+"AP2" "AP3" 4000
+"AP2" "AP3" 3000
+2 10000
+45 45 "Airport 4"
+225 -45 "Airport 5"
+2
+"Airport 4" "Airport 5" 50000
+"Airport 5" "Airport 4" 50000
