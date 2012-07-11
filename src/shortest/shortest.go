@@ -37,8 +37,10 @@ func (a *Airport) String() string {
 	return a.name
 }
 
-func (a1 *Airport) CompareTo(a2 *Airport) int {
-	if a1.LessThan(&a2.NVector) {
+func (a1 *Airport) CompareTo(c2 itree.Comparable) int {
+	if a2, ok := c2.(*Airport); !ok {
+		panic("comparing airport against other type of data")
+	} else if a1.LessThan(&a2.NVector) {
 		return -1
 	} else if a2.LessThan(&a1.NVector) {
 		return 1
@@ -80,19 +82,50 @@ func newFlightState(remainingRange, fullRange float64, tree *itree.Tree, airport
 	return flightState{remainingRange, fullRange, tree, airports}
 }
 
+func (fs *flightState) pushAirports(newAirports ...*Airport) (ok bool) {
+	for _, a := range newAirports {
+		if fs.visitedAirports.HasValue(a) {
+			return false
+		}
+	}
+
+	for i, a := range fs.justSeenAirports {
+		if a != nil {
+			fs.visitedAirports = fs.visitedAirports.AddValue(a)
+			fs.justSeenAirports[i] = nil
+		}
+	}
+
+	for i, a := range newAirports {
+		fs.justSeenAirports[i] = a
+	}
+
+	return true
+}
+
 func (fs flightState) TraverseStateHelper(v *g.Vertex) (newState g.PrivateTraverseState, ok bool) {
 	var newFs flightState
 
 	newFs.fullRange = fs.fullRange
+	newFs.visitedAirports = fs.visitedAirports
+	newFs.justSeenAirports = fs.justSeenAirports
 
 	if v.Cost > fs.remainingRange {
 		return fs, false
 	}
 
-	if _, isAirport := v.To.Record.(*Airport); isAirport {
+	if airport, isAirport := v.To.Record.(*Airport); isAirport {
 		newFs.remainingRange = fs.fullRange
-	} else {
+		if ok := newFs.pushAirports(airport); !ok {
+			return fs, false
+		}
+	} else if intersection, isIntersection := v.To.Record.(*AirportIntersection); isIntersection {
 		newFs.remainingRange = fs.remainingRange - v.Cost
+		if ok := newFs.pushAirports(intersection.airports[0], intersection.airports[1]); !ok {
+			return fs, false
+		}
+	} else {
+		panic("unknown point in graph traversal")
 	}
 
 	return newFs, true
