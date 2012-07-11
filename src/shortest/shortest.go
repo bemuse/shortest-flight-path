@@ -19,7 +19,8 @@ const (
 	// DEBUG Flags
 	READ_AIRPORTS    = 1
 	CONNECT_AIRPORTS = 2
-	DEBUG            = 0 // | CONNECT_AIRPORTS // | READ_AIRPORTS
+	PRINT_ROUTE      = 4
+	DEBUG            = 0 | PRINT_ROUTE // | CONNECT_AIRPORTS // | READ_AIRPORTS
 )
 
 var inputFileName *string = flag.String("f", DEFAULT_INPUT_FILE, "name of input file")
@@ -328,7 +329,7 @@ func main() {
 
 			if ok {
 				fmt.Printf("%0.3f\n", distance)
-				if *verbose {
+				if DEBUG&PRINT_ROUTE != 0 {
 					for _, n := range route {
 						fmt.Println(n.Record.String())
 					}

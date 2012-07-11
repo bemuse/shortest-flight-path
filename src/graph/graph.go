@@ -127,7 +127,6 @@ func (g *Graph) ConnectBi(n1, n2 *Node, cost float64) {
 
 func (g *Graph) Traverse(privateState PrivateTraverseState, from, to *Node) (path []*Node, totalCost float64, ok bool) {
 	seen := make(map[*Node]bool)
-	seen[from] = true
 
 	state := &PublicTraverseState{0.0, from, &VisitedList{from, nil}, privateState}
 
@@ -137,11 +136,13 @@ func (g *Graph) Traverse(privateState PrivateTraverseState, from, to *Node) (pat
 
 	for !sh.IsEmpty() {
 		state = heap.Pop(sh).(*PublicTraverseState)
+		if _, found := seen[state.node]; found {
+			continue
+		}
+		seen[state.node] = true
 
 		if DEBUG&PROGRESSIVE_FLAG != 0 {
-			fmt.Print(state.totalCost, " : ")
-			state.visited.Print()
-			fmt.Println()
+			fmt.Printf("%f : %s\n", state.totalCost, state.node.Record)
 		}
 
 		if state.node == to {
