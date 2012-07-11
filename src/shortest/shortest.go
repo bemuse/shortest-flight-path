@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	g "graph"
-	itree "immutable_tree"
 	ipolate "interpolate"
 	"math"
 	"os"
@@ -38,17 +37,6 @@ func (a *Airport) String() string {
 	return a.name
 }
 
-func (a1 *Airport) CompareTo(c2 itree.Comparable) int {
-	if a2, ok := c2.(*Airport); !ok {
-		panic("comparing airport against other type of data")
-	} else if a1.LessThan(&a2.NVector) {
-		return -1
-	} else if a2.LessThan(&a1.NVector) {
-		return 1
-	}
-	return 0
-}
-
 type AirportIntersection struct {
 	sphere.NVector
 	airports [2]*Airport
@@ -61,70 +49,27 @@ func (a *AirportIntersection) String() string {
 // flightState
 
 type flightState struct {
-	remainingRange   float64
-	fullRange        float64
-	visitedAirports  *itree.Tree
-	justSeenAirports [2]*Airport
+	remainingRange float64
+	fullRange      float64
 }
 
-func newFlightState(remainingRange, fullRange float64, tree *itree.Tree, airportsIn ...*Airport) flightState {
-	if tree == nil {
-		tree = itree.NewTree()
-	}
-
-	var airports [2]*Airport
-	if len(airportsIn) >= 1 {
-		airports[0] = airportsIn[0]
-	}
-	if len(airportsIn) == 2 {
-		airports[1] = airportsIn[1]
-	}
-
-	return flightState{remainingRange, fullRange, tree, airports}
-}
-
-func (fs *flightState) pushAirports(newAirports ...*Airport) (ok bool) {
-	for _, a := range newAirports {
-		if fs.visitedAirports.HasValue(a) {
-			return false
-		}
-	}
-
-	for i, a := range fs.justSeenAirports {
-		if a != nil {
-			fs.visitedAirports = fs.visitedAirports.AddValue(a)
-			fs.justSeenAirports[i] = nil
-		}
-	}
-
-	for i, a := range newAirports {
-		fs.justSeenAirports[i] = a
-	}
-
-	return true
+func newFlightState(remainingRange, fullRange float64) flightState {
+	return flightState{remainingRange, fullRange}
 }
 
 func (fs flightState) TraverseStateHelper(v *g.Vertex) (newState g.PrivateTraverseState, ok bool) {
 	var newFs flightState
 
 	newFs.fullRange = fs.fullRange
-	newFs.visitedAirports = fs.visitedAirports
-	newFs.justSeenAirports = fs.justSeenAirports
 
 	if v.Cost > fs.remainingRange {
 		return fs, false
 	}
 
-	if airport, isAirport := v.To.Record.(*Airport); isAirport {
+	if _, isAirport := v.To.Record.(*Airport); isAirport {
 		newFs.remainingRange = fs.fullRange
-		if ok := newFs.pushAirports(airport); !ok {
-			return fs, false
-		}
-	} else if intersection, isIntersection := v.To.Record.(*AirportIntersection); isIntersection {
+	} else if _, isIntersection := v.To.Record.(*AirportIntersection); isIntersection {
 		newFs.remainingRange = fs.remainingRange - v.Cost
-		if ok := newFs.pushAirports(intersection.airports[0], intersection.airports[1]); !ok {
-			return fs, false
-		}
 	} else {
 		panic("unknown point in graph traversal")
 	}
@@ -323,7 +268,7 @@ func main() {
 				fmt.Printf("from %s to %s with max plane range of %f\n", airportFrom.Record.(*Airport).String(), airportTo.Record.(*Airport).String(), planeRange)
 			}
 
-			fs := newFlightState(planeRange, planeRange, nil)
+			fs := newFlightState(planeRange, planeRange)
 
 			route, distance, ok := graph.Traverse(fs, airportFrom, airportTo)
 
