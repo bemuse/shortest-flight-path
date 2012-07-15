@@ -36,11 +36,28 @@ func NewNVectorFromLatLong(lat, lon float64) (result *NVector) {
 }
 
 func NewNVectorFromLatLongDeg(lat, lon float64) (result *NVector) {
-	return NewNVectorFromLatLong(DegreeToRadian(lat), DegreeToRadian(lon))
+	return NewNVectorFromLatLong(DegreesToRadians(lat), DegreesToRadians(lon))
 }
 
-func DegreeToRadian(degree float64) float64 {
-	return degree * math.Pi / 180.0
+func DegreesToRadians(degrees float64) float64 {
+	return degrees * math.Pi / 180.0
+}
+
+func RadiansToDegrees(radians float64) float64 {
+	return radians * 180 / math.Pi
+}
+
+func (v *NVector) ToLatLon() (lat, lon float64) {
+	lat = math.Atan2(v[2], math.Sqrt(v[0]*v[0]+v[1]*v[1]))
+	lon = math.Atan2(v[1], v[0])
+	return
+}
+
+func (v *NVector) ToLatLonDegrees() (lat, lon float64) {
+	tLat, tLon := v.ToLatLon()
+	lat = RadiansToDegrees(tLat)
+	lon = RadiansToDegrees(tLon)
+	return
 }
 
 func (v1 *NVector) AngleBetween(v2 *NVector) float64 {
