@@ -25,6 +25,11 @@ const (
 var inputFileName *string = flag.String("f", DEFAULT_INPUT_FILE, "name of input file")
 var verbose *bool = flag.Bool("v", false, "verbose output")
 var readNames *bool = flag.Bool("r", false, "read airport names")
+var googleMapsURL *bool = flag.Bool("gm", false, "generate Google Maps URL")
+
+type locatable interface {
+	Location() sphere.NVector
+}
 
 // NamedLocation
 
@@ -37,6 +42,10 @@ func (a *Airport) String() string {
 	return a.name
 }
 
+func (a *Airport) Location() sphere.NVector {
+	return a.NVector
+}
+
 type AirportIntersection struct {
 	sphere.NVector
 	airports [2]*Airport
@@ -44,6 +53,10 @@ type AirportIntersection struct {
 
 func (a *AirportIntersection) String() string {
 	return a.airports[0].name + "/" + a.airports[1].name
+}
+
+func (a *AirportIntersection) Location() sphere.NVector {
+	return a.NVector
 }
 
 // flightState
@@ -278,6 +291,33 @@ func main() {
 					for _, n := range route {
 						fmt.Println(n.Record.String())
 					}
+				}
+				if *googleMapsURL {
+					// https://maps.google.com/maps?saddr=42.5%C2%B0+N,+84%C2%B0+W&daddr=33%C2%B0+N,+118%C2%B0+W+to:38%C2%B0+N,+120%C2%B0+W
+					for i, n := range route {
+						if i == 0 {
+							fmt.Print("https://maps.google.com/maps?saddr=")
+						} else if i == 1 {
+							fmt.Print("&daddr=")
+						} else {
+							fmt.Print("+to:")
+						}
+
+						l1 := n.Record.(locatable)
+						l2 := l1.Location()
+						lat, lon := l2.ToLatLonDegrees()
+						latDir, lonDir := "N", "E"
+						if lat < 0 {
+							latDir = "S"
+							lat = -lat
+						}
+						if lon < 0 {
+							lonDir = "W"
+							lon = -lon
+						}
+						fmt.Printf("%f%%C2%%B0+%s,+%f%%C2%%B0+%s", lat, latDir, lon, lonDir)
+					}
+					fmt.Println()
 				}
 			} else {
 				fmt.Println("impossible")
