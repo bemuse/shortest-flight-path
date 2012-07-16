@@ -1,9 +1,14 @@
 package sphere
 
 import (
+	"fmt"
 	"math"
+	"os"
 	"testing"
 )
+
+const floatDelta = 0.00001
+const earthRadiusKm = 6372.8
 
 func TestNormalize(t *testing.T) {
 	v1 := NewNVectorFromLatLongDeg(8.0, 31.0)
@@ -23,7 +28,6 @@ func TestScaleTo(t *testing.T) {
 
 // Example from Wikipedia Great Circle article (http://en.wikipedia.org/wiki/Great-circle_distance)
 func TestRealWorld(t *testing.T) {
-	const earthRadiusKm = 6372.8
 	const expectedDistanceKm = 2887.26
 	bna := NewNVectorFromLatLongDeg(36.12, -86.67)
 	lax := NewNVectorFromLatLongDeg(33.94, -118.40)
@@ -38,3 +42,19 @@ func TestRealWorld(t *testing.T) {
 	}
 }
 
+func TestCircles(t *testing.T) {
+	europe := NewNVector(1, 0, 0)
+	/*
+	america := NewNVector(0, -1, 0)
+	asia := NewNVector(0, 1, 0)
+	pacific := NewNVector(-1, 0, 0)
+	northPole := NewNVector(0, 0, 1)
+	southPole := NewNVector(0, 0, -1)
+	*/
+
+	e := europe.CircleOnSphere(earthRadiusKm, 60, 8)
+	for _, p := range e {
+		fmt.Fprint(os.Stderr, p.String())
+	}
+	// a := america.CircleOnSphere(earthRadiusKm, 60, 8)
+}
