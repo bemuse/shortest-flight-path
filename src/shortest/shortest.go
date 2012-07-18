@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	gsm "google_static_map"
 	g "graph"
 	ipolate "interpolate"
 	"math"
@@ -114,8 +115,6 @@ func main() {
 		panic("couldn't open input file \"" + *inputFileName + "\"")
 	}
 	defer func() { in.Close() }()
-
-	// reader := bufio.NewReader(in)
 
 	for caseNumber := 1; ; caseNumber++ {
 		var airportCount int
@@ -293,31 +292,36 @@ func main() {
 					}
 				}
 				if *googleMapsURL {
-					// https://maps.google.com/maps?saddr=42.5%C2%B0+N,+84%C2%B0+W&daddr=33%C2%B0+N,+118%C2%B0+W+to:38%C2%B0+N,+120%C2%B0+W
-					for i, n := range route {
-						if i == 0 {
-							fmt.Print("https://maps.google.com/maps?saddr=")
-						} else if i == 1 {
-							fmt.Print("&daddr=")
-						} else {
-							fmt.Print("+to:")
+					gmap := gsm.NewMap(640, 640, 2)
+					airportsSeen := make(map[*Airport]bool)
+					for _, n := range route {
+						if airport, isAirport := n.Record.(*Airport); isAirport {
+							airportsSeen[airport] = true
+							lat, lon := airport.NVector.ToLatLonDegrees()
+							gmap.AddMarker(gsm.NewPoint(lat, lon))
+						} else if intersection, isIntersection := n.Record.(*AirportIntersection); isIntersection {
+							airportsSeen[intersection.airports[0]] = true
+							airportsSeen[intersection.airports[1]] = true
+							lat, lon := intersection.NVector.ToLatLonDegrees()
+							gmap.AddMarker(gsm.NewPoint(lat, lon))
 						}
-
-						l1 := n.Record.(locatable)
-						l2 := l1.Location()
-						lat, lon := l2.ToLatLonDegrees()
-						latDir, lonDir := "N", "E"
-						if lat < 0 {
-							latDir = "S"
-							lat = -lat
-						}
-						if lon < 0 {
-							lonDir = "W"
-							lon = -lon
-						}
-						fmt.Printf("%f%%C2%%B0+%s,+%f%%C2%%B0+%s", lat, latDir, lon, lonDir)
 					}
-					fmt.Println()
+					for airport, _ := range airportsSeen {
+						pathPoints := airport.NVector.CircleOnSphere(EARTH_RADIUS_KM, maxRadiusKm, 12)
+						polyLine := gsm.NewPolyLine()
+						polyLine.ClosePath = true
+						//polyLine.Weight = 1
+						//polyLine.Color = "0x000000ff"
+						//fillColor := "0x00000040"
+						fillColor := "red"
+						polyLine.FillColor = &fillColor
+						for _, pp := range pathPoints {
+							lat, lon := pp.ToLatLonDegrees()
+							polyLine.AddPointLatLon(lat, lon)
+						}
+						gmap.AddPath(polyLine)
+					} 
+					fmt.Println(gmap.Encode())
 				}
 			} else {
 				fmt.Println("impossible")
