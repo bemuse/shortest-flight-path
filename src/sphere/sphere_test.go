@@ -44,17 +44,21 @@ func TestRealWorld(t *testing.T) {
 
 func TestCircles(t *testing.T) {
 	europe := NewNVector(1, 0, 0)
-	/*
 	america := NewNVector(0, -1, 0)
-	asia := NewNVector(0, 1, 0)
-	pacific := NewNVector(-1, 0, 0)
-	northPole := NewNVector(0, 0, 1)
-	southPole := NewNVector(0, 0, -1)
+	/*
+		asia := NewNVector(0, 1, 0)
+		pacific := NewNVector(-1, 0, 0)
+		northPole := NewNVector(0, 0, 1)
+		southPole := NewNVector(0, 0, -1)
 	*/
 
 	e := europe.CircleOnSphere(earthRadiusKm, 60, 8)
 	for _, p := range e {
 		fmt.Fprint(os.Stderr, p.String())
 	}
-	// a := america.CircleOnSphere(earthRadiusKm, 60, 8)
+	fmt.Fprintln(os.Stderr)
+	a := america.CircleOnSphere(earthRadiusKm, 2000, 12)
+	for _, p := range a {
+		fmt.Fprint(os.Stderr, p.String())
+	}
 }

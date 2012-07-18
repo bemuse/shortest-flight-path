@@ -1,15 +1,12 @@
 package sphere
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 )
 
 type NVector [3]float64
-
-//func (v1 *NVector) LessThan(v2 *NVector) bool {
-//	return (*v1).LessThan(*v2)
-//}
 
 func (v1 *NVector) LessThan(v2 *NVector) bool {
 	if v1[0] < v2[0] {
@@ -89,7 +86,7 @@ func (v *NVector) Magnitude() float64 {
 }
 
 func (v *NVector) String() string {
-	return fmt.Sprintf("(%g, %g, %g)", v[0], v[1], v[2])
+	return fmt.Sprintf("(%0.5f, %0.5f, %0.5f)", v[0], v[1], v[2])
 }
 
 func (v *NVector) ScaleBy(factor float64) (r *NVector) {
@@ -126,20 +123,20 @@ func (v *NVector) TransformationMatrix() (result *Transformation) {
 	cosLon := math.Cos(lon)
 	sinLat := math.Sin(lat)
 	cosLat := math.Cos(lat)
-	
+
 	result = new(Transformation)
 
-	result[0][0] = -sinLat * cosLon
-	result[0][1] = -sinLat * sinLon
-	result[0][2] = cosLat
+	result[0][0] = cosLat * cosLon
+	result[0][1] = -sinLon
+	result[0][2] = -sinLat * cosLon
 
-	result[1][0] = -sinLon
+	result[1][0] = cosLat * sinLon
 	result[1][1] = cosLon
-	// result[1][2] = 0.0
-	
-	result[2][0] = -cosLat * cosLon
-	result[2][1] = -cosLat * sinLon
-	result[2][2] = -sinLat
+	result[1][2] = -sinLat * sinLon
+
+	result[2][0] = sinLat
+	result[2][1] = 0.0
+	result[2][2] = cosLat
 
 	return
 }
@@ -148,10 +145,30 @@ func (t *Transformation) Transform(v *NVector) (result *NVector) {
 	result = new(NVector)
 	for ri, row := range t {
 		for ci, col := range row {
-			result[ri] += v[ci] * col			
+			result[ri] += v[ci] * col
 		}
 	}
 	return
+}
+
+func (t *Transformation) String() string {
+	buf := new(bytes.Buffer)
+	buf.WriteString("[")
+	for ri, row := range t {
+		if ri != 0 {
+			buf.WriteString(", ")
+		}
+		buf.WriteString("[")
+		for ci, col := range row {
+			if ci != 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString(fmt.Sprintf("%0.3f", col))
+		}
+		buf.WriteString("]")
+	}
+	buf.WriteString("]")
+	return buf.String()
 }
 
 func (v *NVector) CircleOnSphere(sphereRadius, surfaceRadius float64, numPoints int) (result []*NVector) {
@@ -161,10 +178,10 @@ func (v *NVector) CircleOnSphere(sphereRadius, surfaceRadius float64, numPoints 
 	centerToCircle := sphereRadius * math.Cos(angle)
 	circleRadius := sphereRadius * math.Sin(angle)
 	for i := 0; i < numPoints; i++ {
-		angle := math.Pi * float64(2 * i) / float64(numPoints)
-		v := NewNVector(centerToCircle, circleRadius * math.Sin(angle), circleRadius * math.Cos(angle))
-		result = append(result, t.Transform(v)) 
+		angle := math.Pi * float64(2*i) / float64(numPoints)
+		v := NewNVector(centerToCircle, circleRadius*math.Cos(angle), circleRadius*math.Sin(angle))
+		result = append(result, t.Transform(v))
 	}
-	
+
 	return
 }
