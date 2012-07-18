@@ -6,6 +6,11 @@ import (
 	"net/url"
 )
 
+const (
+	DEBUG_ENCODE           = false
+	DISPLAY_UNESCAPED_PATH = true
+)
+
 type Location interface {
 	GetLocation() string
 }
@@ -33,6 +38,7 @@ type Map struct {
 	paths         []*PolyLine
 	width, height int
 	scale         *int
+	Zoom          *int
 }
 
 var precedeChar map[bool]string
@@ -64,7 +70,7 @@ func (m *Map) AddPath(p *PolyLine) {
 	m.paths = append(m.paths, p)
 }
 
-func (m *Map) Encode() string {
+func (m *Map) Encode(compressPaths bool) string {
 	buffer := new(bytes.Buffer)
 
 	buffer.WriteString(URL_HEAD)
@@ -73,10 +79,13 @@ func (m *Map) Encode() string {
 	if m.scale != nil {
 		buffer.WriteString(fmt.Sprint("&scale=", *m.scale))
 	}
+	if m.Zoom != nil {
+		buffer.WriteString(fmt.Sprint("&zoom=", *m.Zoom))
+	}
 
 	for _, path := range m.paths {
 		buffer.WriteString("&")
-		buffer.WriteString(path.Encode())
+		buffer.WriteString(path.Encode(compressPaths))
 	}
 
 	if len(m.markers) > 0 {
@@ -138,20 +147,37 @@ func (pl *PolyLine) AddPointLatLon(lat, lon float64) {
  * https://developers.google.com/maps/documentation/utilities/polylinealgorithm
  */
 func EncodeSignedFloat(v float64) string {
-	i := round(v*100000) << 1
+	if DEBUG_ENCODE {
+		fmt.Print(v, " ")
+	}
+	r := round(v * 100000)
+	if DEBUG_ENCODE {
+		fmt.Print(r, " ")
+		fmt.Printf("%b ", r)
+	}
+
+	i := r << 1
 	if i < 0 {
 		i = -i - 1
 	}
+	if DEBUG_ENCODE {
+		fmt.Printf("%b\n", i)
+	}
 
 	buffer := new(bytes.Buffer)
-	for i > 0 {
+	keepLooping := true
+	for keepLooping {
 		b := uint8(i & 0x1F)
 		i = i >> 5
 		if i > 0 {
 			b |= 0x20
 		}
+		if DEBUG_ENCODE {
+			fmt.Printf("    %6b %6b %d %c %b\n", b, b+63, b+63, b+63, i)
+		}
 		b += 63
 		buffer.WriteByte(b)
+		keepLooping = i > 0
 	}
 
 	return buffer.String()
@@ -191,7 +217,7 @@ func (pl *PolyLine) EncodeLocations() string {
 	return buffer.String()
 }
 
-func (pl *PolyLine) Encode() string {
+func (pl *PolyLine) Encode(compressIfPossible bool) string {
 	buffer := new(bytes.Buffer)
 	buffer.WriteString("path")
 	firstParam := true
@@ -217,13 +243,23 @@ func (pl *PolyLine) Encode() string {
 		buffer.WriteString(*pl.FillColor)
 	}
 
-	if pl.allPointLocations {
+	if pl.allPointLocations && compressIfPossible {
 		buffer.WriteString(precedeChar[firstParam])
 		firstParam = false
 		buffer.WriteString("enc:")
-		buffer.WriteString(url.QueryEscape(pl.EncodeLocations()))
+		encoded := pl.EncodeLocations()
+		if DISPLAY_UNESCAPED_PATH {
+			fmt.Println(encoded)
+		}
+		buffer.WriteString(url.QueryEscape(encoded))
 	} else {
 		for _, loc := range pl.locations {
+			buffer.WriteString(precedeChar[firstParam])
+			firstParam = false
+			buffer.WriteString(url.QueryEscape(loc.GetLocation()))
+		}
+		if pl.ClosePath {
+			loc := pl.locations[0]
 			buffer.WriteString(precedeChar[firstParam])
 			firstParam = false
 			buffer.WriteString(url.QueryEscape(loc.GetLocation()))

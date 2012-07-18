@@ -321,7 +321,7 @@ func main() {
 						}
 						gmap.AddPath(polyLine)
 					} 
-					fmt.Println(gmap.Encode())
+					fmt.Println(gmap.Encode(true))
 				}
 			} else {
 				fmt.Println("impossible")
