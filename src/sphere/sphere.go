@@ -179,7 +179,7 @@ func (v *NVector) CircleOnSphere(sphereRadius, surfaceRadius float64, numPoints 
 	circleRadius := sphereRadius * math.Sin(angle)
 	for i := 0; i < numPoints; i++ {
 		angle := math.Pi * float64(2*i) / float64(numPoints)
-		v := NewNVector(centerToCircle, circleRadius*math.Cos(angle), circleRadius*math.Sin(angle))
+		v := NewNVector(centerToCircle, circleRadius*math.Sin(angle), circleRadius*math.Cos(angle))
 		result = append(result, t.Transform(v))
 	}
 
