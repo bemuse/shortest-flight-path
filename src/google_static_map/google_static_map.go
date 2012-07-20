@@ -7,8 +7,10 @@ import (
 )
 
 const (
+	DEFAULT_INT            = -1
+	DEFAULT_STRING         = ""
 	DEBUG_ENCODE           = false
-	DISPLAY_UNESCAPED_PATH = true
+	DISPLAY_UNESCAPED_PATH = false
 )
 
 type Location interface {
@@ -25,9 +27,9 @@ type PolyLine struct {
 	locations         []Location
 	allPointLocations bool
 	ClosePath         bool
-	Weight            *int
-	Color             *string
-	FillColor         *string
+	weight            int
+	color             string
+	fillColor         string
 }
 
 const URL_HEAD = "http://maps.googleapis.com/maps/api/staticmap?"
@@ -128,6 +130,9 @@ func NewPolyLine() *PolyLine {
 	result.ClosePath = false
 	result.locations = make([]Location, 0, 10)
 	result.allPointLocations = true
+	result.color = DEFAULT_STRING
+	result.fillColor = DEFAULT_STRING
+	result.weight = DEFAULT_INT
 	return result
 }
 
@@ -222,25 +227,25 @@ func (pl *PolyLine) Encode(compressIfPossible bool) string {
 	buffer.WriteString("path")
 	firstParam := true
 
-	if pl.Weight != nil {
+	if pl.weight != DEFAULT_INT {
 		buffer.WriteString(precedeChar[firstParam])
 		firstParam = false
 		buffer.WriteString("weight:")
-		buffer.WriteString(fmt.Sprint(*pl.Weight))
+		buffer.WriteString(fmt.Sprint(pl.weight))
 	}
 
-	if pl.Color != nil {
+	if pl.color != DEFAULT_STRING {
 		buffer.WriteString(precedeChar[firstParam])
 		firstParam = false
 		buffer.WriteString("color:")
-		buffer.WriteString(*pl.Color)
+		buffer.WriteString(pl.color)
 	}
 
-	if pl.FillColor != nil {
+	if pl.fillColor != DEFAULT_STRING {
 		buffer.WriteString(precedeChar[firstParam])
 		firstParam = false
 		buffer.WriteString("fillcolor:")
-		buffer.WriteString(*pl.FillColor)
+		buffer.WriteString(pl.fillColor)
 	}
 
 	if pl.allPointLocations && compressIfPossible {
@@ -267,4 +272,16 @@ func (pl *PolyLine) Encode(compressIfPossible bool) string {
 	}
 
 	return buffer.String()
+}
+
+func (pl *PolyLine) SetWeight(weight int) {
+	pl.weight = weight
+}
+
+func (pl *PolyLine) SetColor(color string) {
+	pl.color = color
+}
+
+func (pl *PolyLine) SetFillColor(color string) {
+	pl.fillColor = color
 }

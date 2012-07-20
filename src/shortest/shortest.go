@@ -294,33 +294,38 @@ func main() {
 				if *googleMapsURL {
 					gmap := gsm.NewMap(640, 640, 2)
 					airportsSeen := make(map[*Airport]bool)
+					flightPath := make([]sphere.NVector, 0, len(route))
 					for _, n := range route {
 						if airport, isAirport := n.Record.(*Airport); isAirport {
 							airportsSeen[airport] = true
 							lat, lon := airport.NVector.ToLatLonDegrees()
 							gmap.AddMarker(gsm.NewPoint(lat, lon))
+							flightPath = append(flightPath, airport.NVector)
 						} else if intersection, isIntersection := n.Record.(*AirportIntersection); isIntersection {
 							airportsSeen[intersection.airports[0]] = true
 							airportsSeen[intersection.airports[1]] = true
-							lat, lon := intersection.NVector.ToLatLonDegrees()
-							gmap.AddMarker(gsm.NewPoint(lat, lon))
+							// lat, lon := intersection.NVector.ToLatLonDegrees()
+							// gmap.AddMarker(gsm.NewPoint(lat, lon))
+							flightPath = append(flightPath, intersection.NVector)
 						}
 					}
 					for airport, _ := range airportsSeen {
-						pathPoints := airport.NVector.CircleOnSphere(EARTH_RADIUS_KM, maxRadiusKm, 12)
+						pathPoints := airport.NVector.CircleOnSphere(EARTH_RADIUS_KM, maxRadiusKm, 33)
 						polyLine := gsm.NewPolyLine()
 						polyLine.ClosePath = true
-						//polyLine.Weight = 1
-						//polyLine.Color = "0x000000ff"
-						//fillColor := "0x00000040"
-						fillColor := "red"
-						polyLine.FillColor = &fillColor
+						polyLine.SetWeight(1)
+						polyLine.SetColor("0x0000ffff")
+						polyLine.SetFillColor("0x8080ff40")
 						for _, pp := range pathPoints {
 							lat, lon := pp.ToLatLonDegrees()
 							polyLine.AddPointLatLon(lat, lon)
 						}
 						gmap.AddPath(polyLine)
-					} 
+					}
+					flightPathPolyLine := makePolyLine(flightPath)
+					flightPathPolyLine.SetWeight(1)
+					flightPathPolyLine.SetColor("0xff0000ff")
+					gmap.AddPath(flightPathPolyLine)
 					fmt.Println(gmap.Encode(true))
 				}
 			} else {
@@ -328,4 +333,13 @@ func main() {
 			}
 		}
 	}
+}
+
+func makePolyLine(points []sphere.NVector) *gsm.PolyLine {
+	pl := gsm.NewPolyLine()
+	for _, point := range points {
+		lat, lon := point.ToLatLonDegrees()
+		pl.AddPointLatLon(lat, lon)
+	}
+	return pl
 }
