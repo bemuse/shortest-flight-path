@@ -8,15 +8,14 @@ import (
 
 const earthRadiusMiles = 3959.0
 
-func makePolyLine(points []*sphere.NVector, color string) *gsm.PolyLine {
+func setPolyLineColors(pl *gsm.PolyLine, color string) {
+	pl.SetWeight(1)
+	pl.SetColor(color + "c0")
+	pl.SetFillColor(color + "10")
+}
+
+func makePolyLine(points []*sphere.NVector) *gsm.PolyLine {
 	pl := gsm.NewPolyLine()
-	pl.ClosePath = true
-	weight := 1
-	pl.Weight = &weight
-	pathColor := color + "c0"
-	pl.Color = &pathColor
-	fillColor := color + "10"
-	pl.FillColor = &fillColor
 	for _, point := range points {
 		lat, lon := point.ToLatLonDegrees()
 		pl.AddPointLatLon(lat, lon)
@@ -59,7 +58,9 @@ func main() {
 	for li, location := range locations {
 		for _, radius := range radii {
 			circlePoints := location.CircleOnSphere(earthRadiusMiles, radius, 6)
-			circlePath := makePolyLine(circlePoints, colors[li])
+			circlePath := makePolyLine(circlePoints)
+			circlePath.ClosePath = true
+			setPolyLineColors(circlePath, colors[li])
 			m.AddPath(circlePath)
 		}
 	}
