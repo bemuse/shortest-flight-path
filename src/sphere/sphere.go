@@ -114,6 +114,69 @@ func (v1 *NVector) Add(v2 *NVector) (r *NVector) {
 	return
 }
 
+func (v1 *NVector) Subtract(v2 *NVector) (r *NVector) {
+	r = new(NVector)
+	r[0] = v1[0] - v2[0]
+	r[1] = v1[1] - v2[1]
+	r[2] = v1[2] - v2[2]
+	return
+}
+
+func (v1 *NVector) ProjectOnto(onto *NVector) *NVector {
+	ontoUnit := onto.Normalize()
+	scalarProjection := v1.DotProduct(ontoUnit)
+	return ontoUnit.ScaleBy(scalarProjection)
+}
+
+func (v1 *NVector) ProjectOntoPlane(normal *NVector) *NVector {
+	projectOnto := v1.ProjectOnto(normal)
+	return v1.Subtract(projectOnto)
+}
+
+/* Assumes vb, v1, and v2 are all on the same plane; if not the results will not be accurate */
+func (vb *NVector) IsBetween(v1, v2 *NVector) bool {
+	big := v1.AngleBetween(v2)
+	small1 := vb.AngleBetween(v1)
+	if small1 > big {
+		return false
+	}
+	small2 := vb.AngleBetween(v2)
+	return small2 <= big && small1 + small2 <= math.Pi
+}
+
+/* Assumes vb, v1, and v2 are all on the same plane; if not the results will not be accurate */
+func (vb *NVector) IsBetweenEpsilon(v1, v2 *NVector, epsilon float64) bool {
+	big := v1.AngleBetween(v2)
+	small1 := vb.AngleBetween(v1)
+	small2 := vb.AngleBetween(v2)
+	zero := math.Abs(big - small1 - small2)
+	return zero <= epsilon
+}
+
+func (start *NVector) IsWithin(extreme1, extreme2, between *NVector) bool {
+	toExtreme1 := extreme1.Subtract(start)
+	toExtreme2 := extreme2.Subtract(start)
+	toBetween := between.Subtract(start)
+	
+	toExtreme1Plane := toExtreme1.ProjectOntoPlane(start)
+	toExtreme2Plane := toExtreme2.ProjectOntoPlane(start)
+	toBetweenPlane := toBetween.ProjectOntoPlane(start)
+	
+	return toBetweenPlane.IsBetween(toExtreme1Plane, toExtreme2Plane)
+}
+
+func (start *NVector) IsWithinEpsilon(extreme1, extreme2, between *NVector, epsilon float64) bool {
+	toExtreme1 := extreme1.Subtract(start)
+	toExtreme2 := extreme2.Subtract(start)
+	toBetween := between.Subtract(start)
+	
+	toExtreme1Plane := toExtreme1.ProjectOntoPlane(start)
+	toExtreme2Plane := toExtreme2.ProjectOntoPlane(start)
+	toBetweenPlane := toBetween.ProjectOntoPlane(start)
+	
+	return toBetweenPlane.IsBetweenEpsilon(toExtreme1Plane, toExtreme2Plane, epsilon)
+}
+
 type Transformation [3][3]float64
 
 func (v *NVector) TransformationMatrix() (result *Transformation) {
